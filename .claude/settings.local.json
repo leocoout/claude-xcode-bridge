@@ -1,0 +1,39 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:docs.anthropic.com)",
+      "WebFetch(domain:github.com)",
+      "WebSearch",
+      "Bash(mkdir:*)",
+      "Bash(chmod:*)",
+      "Bash(python3:*)",
+      "Bash(pip3 install:*)",
+      "Bash(rm:*)",
+      "Bash(pip3 list:*)",
+      "Bash(cat:*)",
+      "Bash(for i in {1..5})",
+      "Bash(do python3 /Users/bytedance/claude-xcode-bridge/src/statusline/xcode_statusline.py)",
+      "Bash(done)",
+      "Bash(osascript:*)",
+      "Bash(xcrun xcresulttool get:*)",
+      "Bash(./start-bridge.sh:*)",
+      "Bash(lsof:*)",
+      "Bash(kill:*)",
+      "Bash(/Users/bytedance/claude-xcode-bridge/src/statusline/start_status_watcher.sh:*)",
+      "Bash(pkill:*)",
+      "Bash(timeout 5 python3:*)",
+      "Bash(xcrun xcdevice:*)",
+      "Bash(xcrun xcresulttool:*)",
+      "Bash(curl:*)"
+    ],
+    "deny": [],
+    "ask": [],
+    "additionalDirectories": [
+      "/Users/bytedance/Library/Developer/Xcode/DerivedData/ExampleApp-efmrawqxkiddnuhkckiwhvoyfkcw"
+    ]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "python3 /Users/bytedance/claude-xcode-bridge/src/statusline/xcode_statusline.py"
+  }
+}
