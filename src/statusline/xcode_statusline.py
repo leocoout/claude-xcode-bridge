@@ -26,7 +26,7 @@ SOURCE_DIRECTORIES = ["Sources", "src"]
 
 COLOR_RED = "\033[31m"
 COLOR_GREEN = "\033[32m"
-COLOR_BLUE = "\033[34m"
+COLOR_BLUE = "\033[94m"  # Light blue
 COLOR_RESET = "\033[0m"
 
 APPLESCRIPT_GET_PROJECT = '''
@@ -55,6 +55,28 @@ tell application "System Events"
             end try
         end tell
     end if
+end tell
+'''
+
+# Direct Xcode API - doesn't require assistive access
+APPLESCRIPT_GET_XCODE_WINDOW = '''
+tell application "Xcode"
+    try
+        return name of window 1
+    on error
+        return ""
+    end try
+end tell
+'''
+
+APPLESCRIPT_GET_SOURCE_DOCUMENT = '''
+tell application "Xcode"
+    try
+        set sourceDoc to source document 1
+        return path of sourceDoc
+    on error
+        return ""
+    end try
 end tell
 '''
 
@@ -247,16 +269,70 @@ def extract_errors_from_log(log_path):
 
 def get_current_file_path():
     try:
-        result = subprocess.run(['osascript', '-e', APPLESCRIPT_GET_DOCUMENT], 
-                              capture_output=True, text=True, timeout=APPLESCRIPT_SHORT_TIMEOUT)
-        file_path = result.stdout.strip()
-        
-        current_file = ""
-        project_path = ""
-        
-        result = subprocess.run(['osascript', '-e', APPLESCRIPT_GET_WINDOW_TITLE], 
+        # First try to get the window title to extract the current file name
+        result = subprocess.run(['osascript', '-e', APPLESCRIPT_GET_XCODE_WINDOW],
                               capture_output=True, text=True, timeout=APPLESCRIPT_SHORT_TIMEOUT)
         window_title = result.stdout.strip()
+
+        current_file_name = ""
+        if " — " in window_title:
+            parts = window_title.split(" — ")
+            current_file_name = parts[-1]
+
+        # If we have a file name, try to find it using source documents
+        if current_file_name and not any(ext in current_file_name for ext in PROJECT_EXTENSIONS):
+            # Try to find the matching source document
+            script = f'''tell application "Xcode"
+                try
+                    set sourceDoc to source document 1 whose name is "{current_file_name}"
+                    return path of sourceDoc
+                on error
+                    repeat with i from 1 to 10
+                        try
+                            set sourceDoc to source document i
+                            if name of sourceDoc is "{current_file_name}" then
+                                return path of sourceDoc
+                            end if
+                        end try
+                    end repeat
+                    return ""
+                end try
+            end tell'''
+
+            result = subprocess.run(['osascript', '-e', script],
+                                  capture_output=True, text=True, timeout=APPLESCRIPT_SHORT_TIMEOUT)
+            file_path = result.stdout.strip()
+
+            if file_path and os.path.exists(file_path):
+                return file_path
+
+        # Fall back to trying source document 1
+        result = subprocess.run(['osascript', '-e', APPLESCRIPT_GET_SOURCE_DOCUMENT],
+                              capture_output=True, text=True, timeout=APPLESCRIPT_SHORT_TIMEOUT)
+        source_file_path = result.stdout.strip()
+
+        # If we got a valid path, return it
+        if source_file_path and os.path.exists(source_file_path):
+            return source_file_path
+
+        # Fall back to the old method if source document fails
+        result = subprocess.run(['osascript', '-e', APPLESCRIPT_GET_DOCUMENT],
+                              capture_output=True, text=True, timeout=APPLESCRIPT_SHORT_TIMEOUT)
+        file_path = result.stdout.strip()
+
+        current_file = ""
+        project_path = ""
+
+        # Try direct Xcode API first for window title
+        result = subprocess.run(['osascript', '-e', APPLESCRIPT_GET_XCODE_WINDOW],
+                              capture_output=True, text=True, timeout=APPLESCRIPT_SHORT_TIMEOUT)
+        window_title = result.stdout.strip()
+
+        # Fall back to System Events if needed
+        if not window_title:
+            result = subprocess.run(['osascript', '-e', APPLESCRIPT_GET_WINDOW_TITLE],
+                                  capture_output=True, text=True, timeout=APPLESCRIPT_SHORT_TIMEOUT)
+            window_title = result.stdout.strip()
         
         if " — " in window_title:
             parts = window_title.split(" — ")
@@ -343,20 +419,27 @@ def write_logs(status, project_path="", current_file_path=""):
 
 def get_xcode_status():
     try:
-        result = subprocess.run(['pgrep', '-x', XCODE_PROCESS_NAME], 
+        result = subprocess.run(['pgrep', '-x', XCODE_PROCESS_NAME],
                               capture_output=True, text=True)
         xcode_running = result.returncode == 0
-        
+
         if not xcode_running:
             return {"xcode_running": False}
-        
-        result = subprocess.run(['osascript', '-e', APPLESCRIPT_GET_WINDOW_TITLE], 
+
+        # Try direct Xcode API first (doesn't require assistive access)
+        result = subprocess.run(['osascript', '-e', APPLESCRIPT_GET_XCODE_WINDOW],
                               capture_output=True, text=True, timeout=APPLESCRIPT_SHORT_TIMEOUT)
         window_title = result.stdout.strip()
-        
+
+        # Fall back to System Events if direct API fails
+        if not window_title:
+            result = subprocess.run(['osascript', '-e', APPLESCRIPT_GET_WINDOW_TITLE],
+                                  capture_output=True, text=True, timeout=APPLESCRIPT_SHORT_TIMEOUT)
+            window_title = result.stdout.strip()
+
         current_file = ""
         project_name = ""
-        
+
         if " — " in window_title:
             parts = window_title.split(" — ")
             project_name = parts[0]
@@ -423,8 +506,9 @@ def format_status_line(status):
     if status.get("current_file"):
         current_file_path = status.get("current_file_path", "")
         if current_file_path:
-            file_link = f"\033]8;;file://{current_file_path}\033\\{status['current_file']}\033]8;;\033\\"
-            parts.append(f" | {COLOR_BLUE}⧉ In {file_link}{COLOR_RESET}")
+            # Apply color inside the hyperlink text, not outside
+            file_link = f"\033]8;;file://{current_file_path}\033\\{COLOR_BLUE}{status['current_file']}{COLOR_RESET}\033]8;;\033\\"
+            parts.append(f" | {COLOR_BLUE}⧉ In {COLOR_RESET}{file_link}")
         else:
             parts.append(f" | {COLOR_BLUE}⧉ In {status['current_file']}{COLOR_RESET}")
 
