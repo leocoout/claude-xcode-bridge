@@ -406,13 +406,13 @@ def get_xcode_status():
 def format_status_line(status):
     logs_path = os.environ.get('XCODE_LOGS_PATH', '')
     if not logs_path:
-        return f"{COLOR_RED}⏺{COLOR_RESET} Add XCODE_LOGS_PATH in settings.json first."
+        return f"{COLOR_RED}⏺{COLOR_RESET} Add XCODE_LOGS_PATH in settings.json first"
     
     if not status.get("xcode_running", False):
         # OSC 8 hyperlink format: \033]8;;URI\033\\text\033]8;;\033\\
         # Using file:// with a command to execute
         open_link = "\033]8;;file:///Applications/Xcode.app\033\\open now\033]8;;\033\\"
-        return f"{COLOR_RED}⏺{COLOR_RESET} xcode closed | {open_link}"
+        return f"{COLOR_RED}⏺{COLOR_RESET} xcode closed, {open_link}"
     
     project_name = status.get("project_name", "")
     if project_name:
@@ -427,7 +427,7 @@ def format_status_line(status):
             parts.append(f" | {COLOR_BLUE}⧉ In {file_link}{COLOR_RESET}")
         else:
             parts.append(f" | {COLOR_BLUE}⧉ In {status['current_file']}{COLOR_RESET}")
-    
+
     detailed_errors = status.get("detailed_errors", [])
     if detailed_errors:
         error_count = len(detailed_errors)
