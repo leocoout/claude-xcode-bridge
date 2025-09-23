@@ -18,7 +18,8 @@ DERIVED_DATA_PATH = "~/Library/Developer/Xcode/DerivedData"
 BUILD_LOGS_SUBPATH = "Logs/Build"
 MANIFEST_FILENAME = "LogStoreManifest.plist"
 INFO_PLIST_FILENAME = "Info.plist"
-LOG_FILENAME = "xcode_statusline_logs.json"
+LOG_FILENAME = "statusline_context.json"
+XCODE_LOGS_PATH = ".claude-xcode-build-infra"
 
 XCODE_PROCESS_NAME = "Xcode"
 PROJECT_EXTENSIONS = ['.xcworkspace', '.xcodeproj']
@@ -26,7 +27,7 @@ SOURCE_DIRECTORIES = ["Sources", "src"]
 
 COLOR_RED = "\033[31m"
 COLOR_GREEN = "\033[32m"
-COLOR_BLUE = "\033[94m"  # Light blue
+COLOR_BLUE = "\033[94m" 
 COLOR_RESET = "\033[0m"
 
 APPLESCRIPT_GET_PROJECT = '''
@@ -391,7 +392,7 @@ def get_current_file_path():
         return ""
 
 def write_logs(status, project_path="", current_file_path=""):
-    logs_path = os.environ.get('XCODE_LOGS_PATH', '')
+    logs_path = XCODE_LOGS_PATH
     if not logs_path:
         return
     
@@ -401,6 +402,7 @@ def write_logs(status, project_path="", current_file_path=""):
     log_file = os.path.join(log_dir, LOG_FILENAME)
     
     log_data = {
+        "enabled": True,
         "timestamp": datetime.now().isoformat(),
         "xcode_running": status.get("xcode_running", False),
         "project_name": status.get("project_name", ""),
@@ -487,14 +489,14 @@ def get_xcode_status():
         return {"xcode_running": False}
 
 def format_status_line(status):
-    logs_path = os.environ.get('XCODE_LOGS_PATH', '')
+    logs_path = XCODE_LOGS_PATH
     if not logs_path:
-        return f"{COLOR_RED}⏺{COLOR_RESET} Add XCODE_LOGS_PATH in settings.json first"
+        return f"{COLOR_RED}⏺{COLOR_RESET} Using logs path: {XCODE_LOGS_PATH}"
     
     if not status.get("xcode_running", False):
         # OSC 8 hyperlink format: \033]8;;URI\033\\text\033]8;;\033\\
-        # Using file:// with a command to execute
-        open_link = "\033]8;;file:///Applications/Xcode.app\033\\open now\033]8;;\033\\"
+        # Using file:// with a command to execute, with no underline (\033[24m)
+        open_link = "\033]8;;file:///Applications/Xcode.app\033\\\033[24mopen now\033[24m\033]8;;\033\\"
         return f"{COLOR_RED}⏺{COLOR_RESET} xcode closed, {open_link}"
     
     project_name = status.get("project_name", "")
@@ -506,8 +508,8 @@ def format_status_line(status):
     if status.get("current_file"):
         current_file_path = status.get("current_file_path", "")
         if current_file_path:
-            # Apply color inside the hyperlink text, not outside
-            file_link = f"\033]8;;file://{current_file_path}\033\\{COLOR_BLUE}{status['current_file']}{COLOR_RESET}\033]8;;\033\\"
+            # Apply color inside the hyperlink text, not outside, with no underline
+            file_link = f"\033]8;;file://{current_file_path}\033\\\033[24m{COLOR_BLUE}{status['current_file']}{COLOR_RESET}\033[24m\033]8;;\033\\"
             parts.append(f" | {COLOR_BLUE}⧉ In {COLOR_RESET}{file_link}")
         else:
             parts.append(f" | {COLOR_BLUE}⧉ In {status['current_file']}{COLOR_RESET}")
@@ -528,7 +530,24 @@ def format_status_line(status):
 def update_status_line(status_text):
     print(status_text, flush=True)
 
+def is_statusline_enabled():
+    try:
+        logs_path = XCODE_LOGS_PATH
+        log_dir = os.path.expanduser(f"~/{logs_path}")
+        log_file = os.path.join(log_dir, LOG_FILENAME)
+
+        if os.path.exists(log_file):
+            with open(log_file, 'r') as f:
+                log_data = json.load(f)
+                return log_data.get("enabled", True)
+        return True  # Default to enabled if file doesn't exist
+    except:
+        return True  # Default to enabled on any error
+
 def get_status_once():
+    if not is_statusline_enabled():
+        return ""
+
     status = get_xcode_status()
     return format_status_line(status)
 
