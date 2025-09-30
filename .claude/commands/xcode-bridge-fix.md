@@ -1,5 +1,5 @@
 ---
-allowed-tools: Read, Bash(*), TodoWrite, Edit, MultiEdit, Glob, Grep
+allowed-tools: Read, Bash(*), TodoWrite, Edit, MultiEdit, Glob, Grep, SlashCommand(/xcode-bridge-fix:*)
 description: Analyze Xcode build errors and fix them systematically
 ---
 

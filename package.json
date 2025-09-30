@@ -1,0 +1,48 @@
+{
+  "name": "@claude-xcode/bridge",
+  "version": "1.0.0",
+  "description": "Xcode integration and statusline for Claude Code with build error tracking",
+  "main": "bin/statusline.js",
+  "bin": {
+    "claude-xcode-bridge": "./bin/statusline.js",
+    "claude-xcode-toggle": "./bin/toggle-statusline.js"
+  },
+  "scripts": {
+    "test": "node bin/statusline.js"
+  },
+  "keywords": [
+    "claude",
+    "claude-code",
+    "xcode",
+    "statusline",
+    "ios",
+    "development",
+    "macos"
+  ],
+  "author": "",
+  "license": "MIT",
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/claude-xcode-bridge.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yourusername/claude-xcode-bridge/issues"
+  },
+  "homepage": "https://github.com/yourusername/claude-xcode-bridge#readme",
+  "files": [
+    "bin/",
+    "lib/"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "os": [
+    "darwin"
+  ],
+  "dependencies": {
+    "plist": "^3.1.0"
+  }
+}

@@ -6,6 +6,6 @@
   },
   "statusLine": {
     "type": "command",
-    "command": "python3 src/xcode-bridge-statusline.py"
+    "command": "npx claude-xcode-bridge"
   }
 }
