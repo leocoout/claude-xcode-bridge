@@ -6,6 +6,6 @@
   },
   "statusLine": {
     "type": "command",
-    "command": "npx claude-xcode-bridge"
+    "command": "npx claude-xcode-statusline"
   }
 }
